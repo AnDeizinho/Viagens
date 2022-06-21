@@ -4,6 +4,7 @@
   $crud = new Crud();
   $fornecedores = $crud->select("select cnpj, fantasia from fornecedores");
   $categorias = $crud->select("select id, nome from categorias");
+ 
   if(isset($_POST['nome'])){
     if($_POST['promocao']=="on"){
       $_POST['is_promotion']=1;
@@ -24,6 +25,7 @@
       "descricao" =>$_POST['descricao'],
       "is_promotion"=>(isset( $_POST['promocao']))?1:0
     ];
+    if( $_POST['id']== 0){
     $foi = $crud->execute("insert into produtos(nome,
     hospedagem ,
     trasport ,
@@ -49,18 +51,33 @@
     :preco ,
     :descricao ,
     :is_promotion);",$produto);
+    }else{
+      $produto['id'] = $_POST['id'];
+      $foi = $crud->execute("update produtos set nome = :nome,
+    hospedagem = :hospedagem,
+    trasport = :trasporte,
+    destino = :destino,
+    pk_fornecedor = :fornecedor,
+    pessoas = :qtd_pessoas,
+    dias = :periodo,
+    qtd = :qtd,
+    pk_categoria = :categoria ,
+    preco = :preco,
+    descricao = :descricao,
+    is_promotion = :is_promotion where id = :id;",$produto);
+    }
     
   }
 $pacote;
   if(isset($_GET['id'])){
-    $pacote = $crud->select("select a.id as id, b.cnpj, a.nome, destino, trasport,hospedagem, qtd, c.nome as categoria, is_promotion, preco, b.fantasia as fornecedor
+    $pacote = $crud->select("select a.id as id, b.cnpj, a.descricao as descricao, pessoas, dias , a.nome , destino, trasport, hospedagem, qtd, c.nome as categoria, c.id as idcategoria , is_promotion, preco, b.fantasia as fornecedor
     from produtos as a 
     inner join fornecedores as b on a.pk_fornecedor = b.cnpj 
-    inner join categorias as c on a.pk_categoria = c.id; where id = ?", [$_GET['id']]);
+    inner join categorias as c on a.pk_categoria = c.id where a.id = ?", [$_GET['id']]);
    
   }
 ?>
-<form class="container" method="POST">
+<form class="container" action="/adm/produto/add/" method="POST">
     <style>
         form{
             margin-top:25px;
@@ -70,6 +87,7 @@ $pacote;
     </style>
   <div class="form-row">
     <div class="form-group col-md-6">
+      <input type="number" hidden name="id" value="<?php echo($_GET['id']);?>">
       <label for="inputEmail4">Nome</label>
       <input type="text" class="form-control" id="inputEmail4" name="nome" value="<?php echo($pacote[0]['nome']);?>">
     </div>
@@ -107,7 +125,6 @@ $pacote;
     <div class="form-group col-md-6">
       <label for="inputCity">Fornecedor</label>
       <select id="inputEstado" class="form-control " name="fornecedor">
-        <option selected value ="">Escolher...</option>
         <?php 
             if(isset($_GET['id'])){
               echo('<option selected value ="'.$pacote[0]['cnpj'].'">'.$pacote[0]['fornecedor'].'</option>');
@@ -123,24 +140,28 @@ $pacote;
     </div>
     <div class="form-group col-md-4">
       <label for="inputEstado">Até quantas pessoas?</label>
-      <input type="number" class="form-control " id="inputCity" name="qtd_pessoas">
+      <input type="number" class="form-control " id="inputCity" name="qtd_pessoas" value="<?php echo($pacote[0]['pessoas']);?>">
     </div>
     <div class="form-group col-md-2">
       <label for="inputCEP">Período dias</label>
-      <input type="number" class="form-control " id="inputCEP" name="periodo">
+      <input type="number" class="form-control " id="inputCEP" value="<?php echo($pacote[0]['dias']);?>"  name="periodo">
     </div>
   </div>
 
   <div class="form-row">
     <div class="form-group col-md-4">
       <label for="inputEstado">Disponibilidade</label>
-      <input type="number" class="form-control " id="inputCity" name="qtd">
+      <input type="number" class="form-control " id="inputCity" name="qtd" value="<?php echo($pacote[0]['qtd']);?>">
     </div>
     <div class="form-group col-md-4">
         <label for="inputEstado">Categoria</label>
         <select id="inputEstado" class="form-control " name="categoria">
-            <option selected value="null">Escolher...</option>
             <?php 
+              if(isset($_GET['id'])){
+                  echo('<option selected value="'.$pacote[0]['idcategoria'].'">'.$pacote[0]['categoria'].'</option>');
+              }else{
+                echo('<option selected value="null">Escolher...</option>');
+              }
               foreach($categorias as $i){
                 echo('<option value="'.$i['id'].'">'.$i['nome'].'</option>');
               }
@@ -149,16 +170,19 @@ $pacote;
     </div>
     <div class="form-group col-md-4">
       <label for="inputEstado">Preço R$</label>
-      <input type="number" step="00.0" min="0" class="form-control" id="inputCity" name="preco">
+      <input type="number" step="0.0" value="<?php echo($pacote[0]['preco']);?>" min="0" class="form-control" id="inputCity" name="preco">
     </div>
   </div>
   <div class="form-group">
       <label>Descrição</label>
-      <textarea class="form-control " name="descricao" maxlength="200" hstyle="height:200px;"></textarea>
+      <textarea class="form-control " name="descricao" maxlength="200" hstyle="height:200px;">
+        <?php echo($pacote[0]['descricao']);?>
+      </textarea>
   </div>
   <div class="form-group">
         <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="gridCheck" name="promocao">
+        <input class="form-check-input" type="checkbox" id="gridCheck" name="promocao" <?php 
+        echo($pacote[0]['is_promotion'] == 1? "checked" : "");?>>
         <label class="form-check-label" for="gridCheck">
             Promoção?
         </label>
